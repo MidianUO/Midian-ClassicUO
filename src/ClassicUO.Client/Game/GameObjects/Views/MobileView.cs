@@ -142,7 +142,13 @@ namespace ClassicUO.Game.GameObjects
 
             if (Serial != World.Player.Serial)
             {
-                if (isAttack || isUnderMouse)
+                // Midian: sul bersaglio e sotto il mirino il colore della notorieta' non copre piu' il verde del
+                // veleno ne' il colore della paralisi (es. la gas potion: si mira l'avversario che si combatte).
+                bool statoVisibile = !IsDead &&
+                    ((ProfileManager.CurrentProfile.HighlightMobilesByPoisoned && IsPoisoned) ||
+                     (ProfileManager.CurrentProfile.HighlightMobilesByParalize && IsParalyzed && NotorietyFlag != NotorietyFlag.Invulnerable));
+
+                if ((isAttack || isUnderMouse) && !statoVisibile)
                 {
                     overridedHue = Notoriety.GetHue(NotorietyFlag);
                 }
