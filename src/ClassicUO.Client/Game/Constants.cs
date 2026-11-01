@@ -79,7 +79,9 @@ namespace ClassicUO.Game
 
         public const int MIN_VIEW_RANGE = 5;
         public const int MAX_VIEW_RANGE = 24;
-        public const int MAX_CONTAINER_OPENED_ON_GROUND_RANGE = 3;
+        // Midian: il server (Sphere 0.51a, CChar::CanTouch) lascia usare i contenitori fino a 6 caselle;
+        // con 3 il client chiudeva il baule a ogni 0x20 (es. SRC.FIX nelle script delle armature indossate).
+        public const int MAX_CONTAINER_OPENED_ON_GROUND_RANGE = 6;
 
         public const int OUT_RANGE_COLOR = 0x038B;
         public const int DEAD_RANGE_COLOR = 0x038E;
