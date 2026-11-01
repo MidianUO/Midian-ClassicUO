@@ -541,6 +541,11 @@ namespace ClassicUO.Configuration
 
                                     break;
 
+                                case GumpType.Effetti: // Midian
+                                    gump = new EffettiGump(world);
+
+                                    break;
+
                                 case GumpType.Container:
                                     gump = new ContainerGump(world);
 

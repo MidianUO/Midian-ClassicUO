@@ -45,6 +45,14 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 case ButtonType.BuffIcon:
 
+                    if (Client.Game.UO.Version < ClientVersion.CV_5020)
+                    {
+                        // Midian: con i client vecchi la pallina apre la finestra Effetti attivi.
+                        EffettiGump.ApriChiudi(World);
+
+                        break;
+                    }
+
                     BuffGump gump = UIManager.GetGump<BuffGump>();
 
                     if (gump == null)
@@ -209,6 +217,19 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         X = 20,
                         Y = 42,
+                        ButtonAction = ButtonAction.Activate
+                    }
+                );
+            }
+            else
+            {
+                // Midian: i file del client 1.26 non hanno la pallina 0x7538; questa (0x837) apre Effetti attivi.
+                Add
+                (
+                    new Button((int)ButtonType.BuffIcon, 0x0837, 0x0838, 0x0838)
+                    {
+                        X = 20,
+                        Y = 44,
                         ButtonAction = ButtonAction.Activate
                     }
                 );

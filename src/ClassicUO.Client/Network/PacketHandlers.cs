@@ -2246,6 +2246,10 @@ namespace ClassicUO.Network
                 NetClient.Socket.Send_SkillsRequest(world.Player);
                 scene.DoubleClickDelayed(world.Player);
 
+                // Midian: chiede al server l'elenco degli effetti attivi (un server che non lo conosce lo ignora).
+                EffettiManager.Reset();
+                NetClient.Socket.Send_MidianEffetti();
+
                 if (Client.Game.UO.Version >= Utility.ClientVersion.CV_306E)
                 {
                     NetClient.Socket.Send_ClientType();
@@ -4130,6 +4134,13 @@ namespace ClassicUO.Network
             switch (cmd)
             {
                 case 0:
+                    break;
+
+                //===========================================================================================
+                //===========================================================================================
+                case 0x4D45: // Midian: elenco degli effetti attivi (finestra Effetti attivi)
+                    EffettiManager.Leggi(ref p);
+
                     break;
 
                 //===========================================================================================

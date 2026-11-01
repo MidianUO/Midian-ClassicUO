@@ -1131,6 +1131,40 @@ namespace ClassicUO.Network
             writer.Dispose();
         }
 
+        // Midian: 0x12 tipo 0x4D "EFFETTI 1" chiede l'elenco degli effetti attivi (risposta: 0xBF 0x4D45).
+        // Il server 0.51a, se non lo conosce, scrive solo una riga nel log: si puo' mandare sempre.
+        public static void Send_MidianEffetti(this NetClient socket)
+        {
+            const byte ID = 0x12;
+
+            int length = socket.PacketsTable.GetPacketLength(ID);
+
+            var writer = new StackDataWriter(length < 0 ? 64 : length);
+
+            writer.WriteUInt8(ID);
+
+            if (length < 0)
+            {
+                writer.WriteZero(2);
+            }
+
+            writer.WriteUInt8(0x4D);
+            writer.WriteASCII("EFFETTI 1");
+
+            if (length < 0)
+            {
+                writer.Seek(1, SeekOrigin.Begin);
+                writer.WriteUInt16BE((ushort) writer.BytesWritten);
+            }
+            else
+            {
+                writer.WriteZero(length - writer.BytesWritten);
+            }
+
+            socket.Send(writer.BufferWritten);
+            writer.Dispose();
+        }
+
         public static void Send_UseSkill(this NetClient socket, int idx)
         {
             const byte ID = 0x12;

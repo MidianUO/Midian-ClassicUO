@@ -28,6 +28,9 @@ namespace ClassicUO.Game.UI.Gumps
         Debug,
         NetStats,
 
-        NameOverHeadHandler
+        NameOverHeadHandler,
+
+        // Midian: finestra Effetti attivi (EffettiGump). In fondo: i numeri sono salvati in gumps.xml.
+        Effetti
     }
 }
