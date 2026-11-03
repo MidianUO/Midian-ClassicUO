@@ -1372,7 +1372,10 @@ namespace ClassicUO.Game.GameObjects
                                         return false;
                                     }
 
-                                    if (robeGfx < 0x2683 && (robeGfx < 0x204E || robeGfx > 0x204F))
+                                    // Midian: il sudario 0x204E/0x204F e' la grafica di tutte le vesti
+                                    // di Midian (Balron, Wyrm...): come nel client 2D, cappello e capelli
+                                    // restano visibili sopra la veste.
+                                    if (robeGfx < 0x2683)
                                     {
                                         return false;
                                     }
