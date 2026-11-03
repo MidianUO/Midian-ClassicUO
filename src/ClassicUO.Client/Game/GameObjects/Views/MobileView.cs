@@ -1358,54 +1358,9 @@ namespace ClassicUO.Game.GameObjects
                 }
 
                 case Layer.Helmet:
-                    // hair/helmet hidden under a hood-style robe
-                    if (robeGfx < 0x4B9E)
-                    {
-                        if (robeGfx != 0x4B9D)
-                        {
-                            if (robeGfx < 0x2FBA)
-                            {
-                                if (robeGfx != 0x2FB9)
-                                {
-                                    if (robeGfx > 0x2687)
-                                    {
-                                        return false;
-                                    }
-
-                                    // Midian: il sudario 0x204E/0x204F e' la grafica di tutte le vesti
-                                    // di Midian (Balron, Wyrm...): come nel client 2D, cappello e capelli
-                                    // restano visibili sopra la veste.
-                                    if (robeGfx < 0x2683)
-                                    {
-                                        return false;
-                                    }
-                                }
-                            }
-                            else if (robeGfx != 0x3173)
-                            {
-                                return false;
-                            }
-
-                            return true;
-                        }
-                    }
-                    else if (robeGfx < 0xA0B0)
-                    {
-                        if (robeGfx < 0xA0AB && robeGfx != 0x7816)
-                        {
-                            return false;
-                        }
-                    }
-                    else if (robeGfx != 0xB2B7)
-                    {
-                        return false;
-                    }
-
-                    // these hoods cover the head on every body except gargoyles
-                    bool isGargoyle = mobile.Graphic == 0x029A || mobile.Graphic == 0x029B
-                        || mobile.Graphic == 0x02B6 || mobile.Graphic == 0x02B7;
-
-                    return !isGargoyle;
+                    // Midian: come nel client 2D, nessuna veste nasconde copricapo e capelli (anche le
+                    // vesti di Midian usano la grafica del sudario 0x204E, che ClassicUO trattava da cappuccio).
+                    return false;
 
                 case Layer.Skirt:
                 {
