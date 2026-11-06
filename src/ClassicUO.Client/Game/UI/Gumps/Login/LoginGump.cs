@@ -361,6 +361,16 @@ namespace ClassicUO.Game.UI.Gumps.Login
             _checkboxSaveAccount.IsChecked = Settings.GlobalSettings.SaveAccount;
             _checkboxAutologin.IsChecked = Settings.GlobalSettings.AutoLogin;
 
+            // Midian: creazione di un nuovo account
+            Add
+            (
+                new NiceButton(offsetX - 7, offsetY - 50, 210, 22, ButtonAction.Activate, "Crea un nuovo account", hue: 0x0044)
+                {
+                    ButtonParameter = (int) Buttons.CreaAccount,
+                    IsSelectable = false
+                }
+            );
+
 
             int htmlX = 130;
             int htmlY = 442;
@@ -566,10 +576,20 @@ namespace ClassicUO.Game.UI.Gumps.Login
                     UIManager.Add(new CreditsGump(World));
 
                     break;
+
+                case Buttons.CreaAccount:
+                    SaveCheckboxStatus();
+
+                    if (UIManager.GetGump<CreaAccountGump>() == null)
+                    {
+                        UIManager.Add(new CreaAccountGump(World, null));
+                    }
+
+                    break;
             }
         }
 
-        private class PasswordStbTextBox : StbTextBox
+        internal class PasswordStbTextBox : StbTextBox
         {
             private new Point _caretScreenPosition;
             private new readonly RenderedText _rendererCaret;
@@ -734,7 +754,8 @@ namespace ClassicUO.Game.UI.Gumps.Login
         {
             NextArrow,
             Quit,
-            Credits
+            Credits,
+            CreaAccount
         }
     }
 }

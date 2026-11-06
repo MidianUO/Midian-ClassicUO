@@ -201,7 +201,7 @@ namespace ClassicUO.Network
             writer.Dispose();
         }
 
-        public static void Send_FirstLogin(this NetClient socket, string user, string psw)
+        public static void Send_FirstLogin(this NetClient socket, string user, string psw, byte chiave = 0xFF)
         {
             const byte ID = 0x80;
 
@@ -217,7 +217,7 @@ namespace ClassicUO.Network
 
             writer.WriteASCII(user, 30);
             writer.WriteASCII(psw, 30);
-            writer.WriteUInt8(0xFF);
+            writer.WriteUInt8(chiave); // Midian: 0xC1/0xC2 = crea l'account (LoginScene.CreaAccount)
 
             if (length < 0)
             {

@@ -47,6 +47,10 @@ namespace ClassicUO.Game.Scenes
         private bool _autoLogin;
         private readonly World _world;
 
+        // Midian: creazione dell'account dalla schermata di accesso (risposte: codici 0x40-0x44 di 0x82).
+        private byte _chiaveLogin = 0xFF;
+        private bool _creaInCorso, _creaSimile, _creaRiapri;
+
         public LoginScene(World world) => _world = world;
 
 
@@ -134,6 +138,12 @@ namespace ClassicUO.Game.Scenes
                 g.Dispose();
 
                 _lastLoginStep = CurrentLoginStep;
+
+                if (_creaRiapri && CurrentLoginStep == LoginSteps.Main)
+                {
+                    _creaRiapri = false;
+                    UIManager.Add(new CreaAccountGump(_world, Account));
+                }
             }
 
             if (Reconnect && (CurrentLoginStep == LoginSteps.PopUpMessage || CurrentLoginStep == LoginSteps.Main) && !NetClient.Socket.IsConnected)
@@ -230,7 +240,7 @@ namespace ClassicUO.Game.Scenes
             if (!string.IsNullOrEmpty(PopupMessage))
             {
                 labelText = PopupMessage;
-                showButtons = LoginButtons.OK;
+                showButtons = _creaSimile ? LoginButtons.OK | LoginButtons.Cancel : LoginButtons.OK;
                 PopupMessage = null;
             }
             else
@@ -275,10 +285,43 @@ namespace ClassicUO.Game.Scenes
         {
             LoginButtons butt = (LoginButtons) buttonId;
 
+            if (_creaSimile)
+            {
+                // Midian: esiste un account dal nome simile. OK = e' proprio un altro, crealo lo stesso.
+                _creaSimile = false;
+                NetClient.Socket.Disconnect();
+
+                if (butt == LoginButtons.OK)
+                {
+                    CurrentLoginStep = LoginSteps.Main;
+                    CreaAccount(Account, Password, true);
+
+                    return;
+                }
+
+                CurrentLoginStep = LoginSteps.Main;
+
+                return;
+            }
+
             if (butt == LoginButtons.OK || butt == LoginButtons.Cancel)
             {
+                if (_creaInCorso && CurrentLoginStep == LoginSteps.PopUpMessage)
+                {
+                    _creaRiapri = true; // si torna alla finestra per correggere nome o password
+                }
+
+                _creaInCorso = false;
                 StepBack();
             }
+        }
+
+        // Midian: come Connect, ma chiede al server di creare l'account (conferma = crearlo anche se il nome e' simile a un altro).
+        public void CreaAccount(string account, string password, bool conferma)
+        {
+            _chiaveLogin = conferma ? (byte) 0xC2 : (byte) 0xC1;
+            _creaInCorso = true;
+            Connect(account, password);
         }
 
         public void Connect(string account, string password)
@@ -513,7 +556,8 @@ namespace ClassicUO.Game.Scenes
                 NetClient.Socket.Send_Seed_Old(address);
             }
 
-            NetClient.Socket.Send_FirstLogin(Account, Password);
+            NetClient.Socket.Send_FirstLogin(Account, Password, _chiaveLogin);
+            _chiaveLogin = 0xFF;
         }
 
         private void OnNetClientDisconnected(object sender, SocketError e)
@@ -643,6 +687,23 @@ namespace ClassicUO.Game.Scenes
         public void HandleErrorCode(ref StackDataReader p)
         {
             byte code = p.ReadUInt8();
+
+            // Midian: risposte alla creazione dell'account (CClient::Login_CreaAccount).
+            if (_creaInCorso && p[0] == 0x82 && code >= 0x40 && code <= 0x44)
+            {
+                _creaSimile = code == 0x42;
+                PopupMessage = code switch
+                {
+                    0x40 => "Nome non valido: da 3 a 16 caratteri, solo lettere, numeri, _ e -.",
+                    0x41 => "Questo account esiste gia'. Se e' il tuo, accedi dalla schermata iniziale.",
+                    0x42 => "Esiste gia' un account con un nome molto simile. Se e' il tuo hai sbagliato a scrivere: premi la X e accedi. Se invece vuoi proprio questo nome, premi la spunta.",
+                    0x43 => "Password non valida: da 4 a 16 caratteri, senza spazi.",
+                    _ => "Troppi account creati da questo computer. Riprova piu' tardi."
+                };
+                CurrentLoginStep = LoginSteps.PopUpMessage;
+
+                return;
+            }
 
             PopupMessage = ServerErrorMessages.GetError(p[0], code, LoginDelay);
             CurrentLoginStep = LoginSteps.PopUpMessage;
