@@ -522,6 +522,16 @@ namespace ClassicUO.Game.GameObjects
 
         public bool Walk(Direction direction, bool run)
         {
+            // Midian: se un passo resta senza risposta dal server per 2 secondi si chiede il resync (0x22),
+            // altrimenti il personaggio resterebbe bloccato finche' non arriva una nuova posizione.
+            if (!Walker.ResendPacketResync && (Walker.WalkingFailed || Walker.UnacceptedPacketsCount > 0) && Time.Ticks > Walker.LastStepRequestTime + 2000)
+            {
+                NetClient.Socket.Send_Resync();
+                Walker.ResendPacketResync = true;
+
+                return false;
+            }
+
             if (Walker.WalkingFailed || Walker.LastStepRequestTime > Time.Ticks || Walker.StepsCount >= Constants.MAX_STEP_COUNT || Client.Game.UO.Version >= ClientVersion.CV_60142 && IsParalyzed)
             {
                 return false;
