@@ -64,7 +64,12 @@ namespace ClassicUO.Assets
 
             FileInfo file = new FileInfo(FileManager.GetUOFilePath("Prof.txt"));
 
-            if (file.Exists)
+            // Midian: le professioni di Prof.txt (Warrior, Mage, Blacksmith) non servono, perche' razza e classe
+            // si scelgono alla pietra nel mondo, e con i file del client 1.26 hanno nomi sbagliati.
+            // Si salta il file: alla creazione del personaggio resta solo "Advanced".
+            const bool MIDIAN_SOLO_ADVANCED = true;
+
+            if (!MIDIAN_SOLO_ADVANCED && file.Exists)
             {
                 if (file.Length > 0x100000) //1megabyte limit of string file
                 {
