@@ -60,11 +60,28 @@ if ($Prova) {
 	$uscita = "$Prova\manifest.json"
 } else {
 	# Release con al massimo 950 allegati ciascuna: client-file, client-file-2, ...
+	# gh scrive gli errori su stderr: con ErrorActionPreference=Stop PowerShell li tratterebbe come eccezioni.
+	function Gh([string[]]$argomenti) {
+		$vecchio = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+		try { $out = & gh @argomenti 2>&1; $codice = $LASTEXITCODE } finally { $ErrorActionPreference = $vecchio }
+		$testo = ($out | ForEach-Object { "$_" }) -join "`n"
+		return [pscustomobject]@{ ok = ($codice -eq 0); testo = $testo }
+	}
+	function VediRelease($tag) {
+		# $null se la release non esiste; riprova se GitHub non risponde.
+		for ($r = 0; $r -lt 6; $r++) {
+			$g = Gh @('release', 'view', $tag, '-R', $Repo, '--json', 'assets')
+			if ($g.ok) { return $g.testo }
+			if ($g.testo -match 'not found') { return $null }
+			Start-Sleep 10
+		}
+		throw "GitHub non risponde: $($g.testo)"
+	}
 	$presenti = @{}; $tags = @()
 	for ($k = 1; $k -le 20; $k++) {
 		$tag = if ($k -eq 1) { "client-file" } else { "client-file-$k" }
-		$json = gh release view $tag -R $Repo --json assets 2>$null
-		if ($LASTEXITCODE -ne 0) { break }
+		$json = VediRelease $tag
+		if ($null -eq $json) { break }
 		$tags += $tag
 		foreach ($a in ($json | ConvertFrom-Json).assets) { $presenti[$a.name] = $tag }
 	}
@@ -78,8 +95,13 @@ if ($Prova) {
 		foreach ($t in $tags) { if ((@($presenti.Values | Where-Object { $_ -eq $t })).Count -lt 950) { $tag = $t; break } }
 		if (-not $tag) {
 			$tag = if ($tags.Count -eq 0) { "client-file" } else { "client-file-$($tags.Count + 1)" }
-			gh release create $tag -R $Repo -t "File del client per il launcher ($tag)" -n "File del client di Midian scaricati dal launcher. Il nome di ogni file e' la sua impronta SHA-256; l'elenco e' in aggiornamenti/manifest.json sul sito. Per installare il gioco usa il pacchetto della release 'client'." | Out-Null
-			if ($LASTEXITCODE -ne 0) { throw "release $tag non creata" }
+			$ok = $false
+			for ($r = 0; $r -lt 4 -and -not $ok; $r++) {
+				$g = Gh @('release', 'create', $tag, '-R', $Repo, '-t', "File del client per il launcher ($tag)", '-n', "File del client di Midian scaricati dal launcher. Il nome di ogni file e' la sua impronta SHA-256; l'elenco e' in aggiornamenti/manifest.json sul sito. Per installare il gioco usa il pacchetto della release 'client'.")
+				$ok = $g.ok -or ($null -ne (VediRelease $tag))
+				if (-not $ok) { Start-Sleep 10 }
+			}
+			if (-not $ok) { throw "release $tag non creata: $($g.testo)" }
 			$tags += $tag
 		}
 		$liberi = 950 - (@($presenti.Values | Where-Object { $_ -eq $tag })).Count
@@ -87,8 +109,8 @@ if ($Prova) {
 		$file = @()
 		foreach ($v in $gruppo) { $d = Join-Path $stage $v.nome; Copy-Item $v.percorso $d -Force; $file += $d }
 		$ok = $false
-		for ($r = 0; $r -lt 4 -and -not $ok; $r++) { gh release upload $tag @file -R $Repo --clobber; $ok = ($LASTEXITCODE -eq 0); if (-not $ok) { Start-Sleep 10 } }
-		if (-not $ok) { throw "caricamento non riuscito su $tag" }
+		for ($r = 0; $r -lt 5 -and -not $ok; $r++) { $g = Gh (@('release', 'upload', $tag) + $file + @('-R', $Repo, '--clobber')); $ok = $g.ok; if (-not $ok) { Start-Sleep 15 } }
+		if (-not $ok) { throw "caricamento non riuscito su ${tag}: $($g.testo)" }
 		foreach ($v in $gruppo) { $presenti[$v.nome] = $tag; Remove-Item (Join-Path $stage $v.nome) -Force }
 		$i += $gruppo.Count
 		"  caricati $i di $($nuovi.Count)"
