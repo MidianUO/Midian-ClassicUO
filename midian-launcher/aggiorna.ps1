@@ -56,6 +56,7 @@ $pulsante.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(212, 175, 55); 
 $pulsante.Add_Click({ $script:Salta = $true })
 $form.Controls.Add($pulsante)
 $script:Salta = $false
+$script:GithubGiu = $false
 $form.Add_FormClosing({ $script:Chiuso = $true })
 $script:Chiuso = $false
 $form.Show()
@@ -166,18 +167,30 @@ try {
 			if (-not (Test-Path $cart)) { New-Item -ItemType Directory -Force $cart | Out-Null }
 			$tmp = "$loc.scaricamento"
 			try {
-				# Fino a 3 tentativi: un intoppo di rete passeggero non deve fermare l'aggiornamento.
-				for ($tent = 1; $tent -le 3; $tent++) {
+				# Prima GitHub, poi la copia di riserva sul VPS (se l'elenco la indica), 2 tentativi ciascuno:
+				# un intoppo di rete o un guasto di GitHub non devono fermare l'aggiornamento. L'impronta viene
+				# dall'elenco in HTTPS, quindi anche il file della riserva e' accettato solo se identico.
+				$fonti = @($f.u)
+				if ($man.riserva -and $f.u) {
+					$ris = $man.riserva + ($f.u -split '/')[-1]
+					# GitHub ha gia' fallito su un file: si parte dalla riserva, senza riaspettarlo.
+					if ($script:GithubGiu) { $fonti = @($ris, $f.u) } else { $fonti += $ris }
+				}
+				$tentativi = New-Object Collections.ArrayList
+				foreach ($fonte in $fonti) { [void]$tentativi.Add($fonte); [void]$tentativi.Add($fonte) }
+				for ($tent = 0; $tent -lt $tentativi.Count; $tent++) {
 					try {
 						if ([long]$f.s -eq 0) { [IO.File]::WriteAllBytes($tmp, [byte[]]@()) }	# file vuoto: niente da scaricare
-						else { Scarica $f.u $tmp ([long]$f.s) ([IO.Path]::GetFileName($f.p)) }
+						else { Scarica $tentativi[$tent] $tmp ([long]$f.s) ([IO.Path]::GetFileName($f.p)) }
 						$h = Sha256File $tmp
 						if ($h -ne $f.h -or (Get-Item $tmp).Length -ne [long]$f.s) { throw "impronta diversa" }
 						break
 					} catch {
-						if ("$_" -eq "annullato" -or $tent -eq 3) { throw }
+						if ("$_" -eq "annullato" -or $tent -eq $tentativi.Count - 1) { throw }
 						Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
-						$dettaglio.Text = "Nuovo tentativo ($($tent + 1) di 3)..."; Ridisegna; Start-Sleep -Seconds (2 * $tent)
+						if ($tentativi[$tent] -eq $f.u -and $tentativi[$tent + 1] -ne $f.u) { $script:GithubGiu = $true }
+						$dove = if ($tentativi[$tent + 1] -ne $f.u) { "server di riserva" } else { "GitHub" }
+						$dettaglio.Text = "Nuovo tentativo dal $dove..."; Ridisegna; Start-Sleep -Seconds 2
 					}
 				}
 				Move-Item -LiteralPath $tmp -Destination $loc -Force

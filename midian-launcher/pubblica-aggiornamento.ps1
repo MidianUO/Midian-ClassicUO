@@ -12,7 +12,10 @@ param(
 	[string]$Launcher = "C:\Midian All\Midian-ClassicUO\midian-launcher",
 	[string]$Sito = "C:\Midian All\Midian-Website",
 	[string]$Repo = "MidianUO/Midian-Website",
-	[string]$Prova = ""
+	[string]$Prova = "",
+	[string]$Riserva = "Administrator@45.13.235.243",	# VPS con la copia di riserva (C:\Midian-Web\file), via SSH
+	[string]$RiservaUrl = "http://45.13.235.243/file/",	# gli stessi file, via web (IIS sul VPS)
+	[switch]$SoloRiserva								# copia solo sul VPS, senza GitHub e senza riscrivere l'elenco
 )
 $ErrorActionPreference = "Stop"
 
@@ -29,7 +32,9 @@ $escludi = @(
 	'^UO/verdata\.mul\.originale$'
 )
 if (-not (Test-Path "$Client\ClassicUO\ClassicUO.exe")) { throw "Client non trovato in $Client" }
-if (Get-Process ClassicUO -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Client\*" }) { throw "Chiudi ClassicUO: i file aperti possono essere a meta'." }
+# I file si leggono soltanto, e quelli che il client scrive mentre gioca (profili, impostazioni) sono esclusi:
+# con ClassicUO aperto basta un avviso. Per installare un cuo.dll nuovo invece va chiuso.
+if (Get-Process ClassicUO -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Client\*" }) { "attenzione: ClassicUO e' aperto (i file si leggono soltanto)" }
 
 # 1) Il launcher nella cartella del client.
 New-Item -ItemType Directory -Force "$Client\Launcher" | Out-Null
@@ -48,6 +53,34 @@ foreach ($f in Get-ChildItem $Client -Recurse -File) {
 	[void]$voci.Add([pscustomobject]@{ p = $rel; s = $f.Length; h = $h; percorso = $f.FullName; nome = $h.Substring(0, 32) + ".bin" })
 }
 "$($voci.Count) file nell'elenco"
+
+# 2b) Copia di riserva sul VPS: solo i file che mancano, in un unico archivio tar via SSH.
+#     Il launcher li usa se GitHub non risponde; l'elenco con le impronte resta solo sul sito (HTTPS).
+if (-not $Prova -and $Riserva) {
+	$chiave = "$env:USERPROFILE\.ssh\midian_vps"
+	$opz = @("-i", $chiave, "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "-o", "LogLevel=ERROR")
+	$vecchio = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+	$lista = & ssh @opz $Riserva "cmd /c dir /b C:\Midian-Web\file" 2>$null
+	$ErrorActionPreference = $vecchio
+	$cisono = @{}; foreach ($n in $lista) { if ($n) { $cisono[$n.Trim()] = $true } }
+	$mancano = @($voci | Where-Object { $_.s -gt 0 -and -not $cisono.ContainsKey($_.nome) } | Sort-Object nome -Unique)
+	"riserva: $($mancano.Count) file da copiare sul VPS"
+	if ($mancano.Count -gt 0) {
+		$st = Join-Path $env:TEMP "midian-riserva"; if (Test-Path $st) { Remove-Item $st -Recurse -Force }; New-Item -ItemType Directory $st | Out-Null
+		foreach ($v in $mancano) { Copy-Item $v.percorso (Join-Path $st $v.nome) -Force }
+		$tar = Join-Path $env:TEMP "midian-riserva.tar"; if (Test-Path $tar) { Remove-Item $tar -Force }
+		& tar.exe -cf $tar -C $st .
+		if ($LASTEXITCODE) { throw "archivio per la riserva non creato" }
+		& scp @opz $tar "${Riserva}:C:/Midian-Web/riserva.tar"
+		if ($LASTEXITCODE) { throw "copia sul VPS non riuscita" }
+		& ssh @opz $Riserva "cmd /c tar -xf C:\Midian-Web\riserva.tar -C C:\Midian-Web\file && del /q C:\Midian-Web\riserva.tar"
+		if ($LASTEXITCODE) { throw "estrazione sul VPS non riuscita" }
+		Remove-Item $st -Recurse -Force; Remove-Item $tar -Force
+		$dopo = (& ssh @opz $Riserva "cmd /c dir /b C:\Midian-Web\file" 2>$null | Where-Object { $_ }).Count
+		"riserva: sul VPS ora $dopo file"
+	}
+	if ($SoloRiserva) { return }
+}
 
 # 3) I file da caricare.
 if ($Prova) {
@@ -130,6 +163,7 @@ if ($Prova) {
 $man = [ordered]@{
 	versione = (Get-Date -Format "yyyy-MM-dd HH:mm")
 	server = [ordered]@{ ip = $s.ip; port = [int]$s.port }
+	riserva = $(if ($Riserva -and -not $Prova) { $RiservaUrl } else { "" })	# dove il launcher ripiega se GitHub non risponde
 	file = @($voci | Sort-Object p | ForEach-Object { [ordered]@{ p = $_.p; s = $_.s; h = $_.h; u = $_.u } })
 }
 [IO.File]::WriteAllText($uscita, ($man | ConvertTo-Json -Depth 5 -Compress), (New-Object Text.UTF8Encoding $false))
