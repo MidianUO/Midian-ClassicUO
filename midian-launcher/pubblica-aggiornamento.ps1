@@ -61,16 +61,16 @@ if ($Prova) {
 } else {
 	# Release con al massimo 950 allegati ciascuna: client-file, client-file-2, ...
 	# gh scrive gli errori su stderr: con ErrorActionPreference=Stop PowerShell li tratterebbe come eccezioni.
-	function Gh([string[]]$argomenti) {
+	function InvocaGh([string[]]$argomenti) {
 		$vecchio = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-		try { $out = & gh @argomenti 2>&1; $codice = $LASTEXITCODE } finally { $ErrorActionPreference = $vecchio }
+		try { $out = & gh.exe @argomenti 2>&1; $codice = $LASTEXITCODE } finally { $ErrorActionPreference = $vecchio }
 		$testo = ($out | ForEach-Object { "$_" }) -join "`n"
 		return [pscustomobject]@{ ok = ($codice -eq 0); testo = $testo }
 	}
 	function VediRelease($tag) {
 		# $null se la release non esiste; riprova se GitHub non risponde.
 		for ($r = 0; $r -lt 6; $r++) {
-			$g = Gh @('release', 'view', $tag, '-R', $Repo, '--json', 'assets')
+			$g = InvocaGh @('release', 'view', $tag, '-R', $Repo, '--json', 'assets')
 			if ($g.ok) { return $g.testo }
 			if ($g.testo -match 'not found') { return $null }
 			Start-Sleep 10
@@ -85,7 +85,8 @@ if ($Prova) {
 		$tags += $tag
 		foreach ($a in ($json | ConvertFrom-Json).assets) { $presenti[$a.name] = $tag }
 	}
-	$nuovi = @($voci | Where-Object { -not $presenti.ContainsKey($_.nome) } | Sort-Object nome -Unique)
+	# I file vuoti non si caricano (GitHub li rifiuta): il launcher li crea da solo.
+	$nuovi = @($voci | Where-Object { $_.s -gt 0 -and -not $presenti.ContainsKey($_.nome) } | Sort-Object nome -Unique)
 	"$($nuovi.Count) file da caricare ($([math]::Round((($nuovi | Measure-Object s -Sum).Sum) / 1MB, 1)) MB)"
 	$stage = Join-Path $env:TEMP "midian-carica"; if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }; New-Item -ItemType Directory $stage | Out-Null
 	$i = 0
@@ -97,7 +98,7 @@ if ($Prova) {
 			$tag = if ($tags.Count -eq 0) { "client-file" } else { "client-file-$($tags.Count + 1)" }
 			$ok = $false
 			for ($r = 0; $r -lt 4 -and -not $ok; $r++) {
-				$g = Gh @('release', 'create', $tag, '-R', $Repo, '-t', "File del client per il launcher ($tag)", '-n', "File del client di Midian scaricati dal launcher. Il nome di ogni file e' la sua impronta SHA-256; l'elenco e' in aggiornamenti/manifest.json sul sito. Per installare il gioco usa il pacchetto della release 'client'.")
+				$g = InvocaGh @('release', 'create', $tag, '-R', $Repo, '-t', "File del client per il launcher ($tag)", '-n', "File del client di Midian scaricati dal launcher. Il nome di ogni file e' la sua impronta SHA-256; l'elenco e' in aggiornamenti/manifest.json sul sito. Per installare il gioco usa il pacchetto della release 'client'.")
 				$ok = $g.ok -or ($null -ne (VediRelease $tag))
 				if (-not $ok) { Start-Sleep 10 }
 			}
@@ -109,14 +110,18 @@ if ($Prova) {
 		$file = @()
 		foreach ($v in $gruppo) { $d = Join-Path $stage $v.nome; Copy-Item $v.percorso $d -Force; $file += $d }
 		$ok = $false
-		for ($r = 0; $r -lt 5 -and -not $ok; $r++) { $g = Gh (@('release', 'upload', $tag) + $file + @('-R', $Repo, '--clobber')); $ok = $g.ok; if (-not $ok) { Start-Sleep 15 } }
+		for ($r = 0; $r -lt 5 -and -not $ok; $r++) { $g = InvocaGh (@('release', 'upload', $tag) + $file + @('-R', $Repo, '--clobber')); $ok = $g.ok; if (-not $ok) { Start-Sleep 15 } }
 		if (-not $ok) { throw "caricamento non riuscito su ${tag}: $($g.testo)" }
 		foreach ($v in $gruppo) { $presenti[$v.nome] = $tag; Remove-Item (Join-Path $stage $v.nome) -Force }
 		$i += $gruppo.Count
 		"  caricati $i di $($nuovi.Count)"
 	}
 	Remove-Item $stage -Recurse -Force
-	foreach ($v in $voci) { $v | Add-Member -NotePropertyName u -NotePropertyValue "https://github.com/$Repo/releases/download/$($presenti[$v.nome])/$($v.nome)" }
+	foreach ($v in $voci) {
+		$u = if ($v.s -eq 0) { "" } else { "https://github.com/$Repo/releases/download/$($presenti[$v.nome])/$($v.nome)" }
+		if ($v.s -gt 0 -and -not $presenti[$v.nome]) { throw "file non caricato: $($v.p)" }
+		$v | Add-Member -NotePropertyName u -NotePropertyValue $u
+	}
 	New-Item -ItemType Directory -Force "$Sito\aggiornamenti" | Out-Null
 	$uscita = "$Sito\aggiornamenti\manifest.json"
 }

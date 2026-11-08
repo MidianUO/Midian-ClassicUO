@@ -166,9 +166,20 @@ try {
 			if (-not (Test-Path $cart)) { New-Item -ItemType Directory -Force $cart | Out-Null }
 			$tmp = "$loc.scaricamento"
 			try {
-				Scarica $f.u $tmp ([long]$f.s) ([IO.Path]::GetFileName($f.p))
-				$h = Sha256File $tmp
-				if ($h -ne $f.h -or (Get-Item $tmp).Length -ne [long]$f.s) { throw "impronta diversa" }
+				# Fino a 3 tentativi: un intoppo di rete passeggero non deve fermare l'aggiornamento.
+				for ($tent = 1; $tent -le 3; $tent++) {
+					try {
+						if ([long]$f.s -eq 0) { [IO.File]::WriteAllBytes($tmp, [byte[]]@()) }	# file vuoto: niente da scaricare
+						else { Scarica $f.u $tmp ([long]$f.s) ([IO.Path]::GetFileName($f.p)) }
+						$h = Sha256File $tmp
+						if ($h -ne $f.h -or (Get-Item $tmp).Length -ne [long]$f.s) { throw "impronta diversa" }
+						break
+					} catch {
+						if ("$_" -eq "annullato" -or $tent -eq 3) { throw }
+						Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+						$dettaglio.Text = "Nuovo tentativo ($($tent + 1) di 3)..."; Ridisegna; Start-Sleep -Seconds (2 * $tent)
+					}
+				}
 				Move-Item -LiteralPath $tmp -Destination $loc -Force
 				$fi = Get-Item -LiteralPath $loc
 				$cache[$f.p] = [pscustomobject]@{ s = $fi.Length; t = $fi.LastWriteTimeUtc.Ticks; h = $h }
@@ -177,6 +188,7 @@ try {
 			} catch {
 				if ("$_" -eq "annullato") { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; break }
 				$errori++
+				try { Add-Content -Path (Join-Path $Qui "errori.log") -Value ("{0}  {1}: {2}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $f.p, $_.Exception.Message) } catch {}
 				Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 			}
 		}
