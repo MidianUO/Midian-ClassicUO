@@ -3809,6 +3809,14 @@ namespace ClassicUO.Network
             //    index += length;
             //}
 
+            // Midian: l'icona di un'abilita' ha aperto il libro; si risponde col pulsante senza mostrare il pannello.
+            if (MidianAbilita.RispostaAutomatica(sender, gumpID))
+            {
+                return;
+            }
+
+            MidianAbilita.PannelloAperto(world, gumpID);
+
             CreateGump(world, sender, gumpID, x, y, cmd, lines);
         }
 
@@ -5471,7 +5479,12 @@ namespace ClassicUO.Network
                     }
                 }
 
-                CreateGump(world, sender, gumpID, (int)x, (int)y, layout, lines);
+                // Midian: come in OpenGump (icone delle abilita' dei libri).
+                if (!MidianAbilita.RispostaAutomatica(sender, gumpID))
+                {
+                    MidianAbilita.PannelloAperto(world, gumpID);
+                    CreateGump(world, sender, gumpID, (int)x, (int)y, layout, lines);
+                }
             }
             finally
             {

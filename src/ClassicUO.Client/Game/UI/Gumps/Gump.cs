@@ -133,6 +133,21 @@ namespace ClassicUO.Game.UI.Gumps
             return IsVisible && base.AddToRenderLists(renderLists, x, y, ref layerDepthRef);
         }
 
+        protected override void OnDragBegin(int x, int y)
+        {
+            // Midian: trascinando il pulsante di un'abilita' fuori da un libro di classe si crea la sua icona
+            // (MidianAbilitaButtonGump) invece di spostare il libro.
+            if (IsFromServer && MidianAbilita.IsLibro(ServerSerial) &&
+                UIManager.MouseOverControl is Button b && b.RootParent == this && MidianAbilita.PulsanteTrascinabile(ServerSerial, b))
+            {
+                MidianAbilita.CreaIcona(this, b);
+
+                return;
+            }
+
+            base.OnDragBegin(x, y);
+        }
+
         public override void OnButtonClick(int buttonID)
         {
             if (!IsDisposed && LocalSerial != 0)

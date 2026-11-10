@@ -31,6 +31,9 @@ namespace ClassicUO.Game.UI.Gumps
         NameOverHeadHandler,
 
         // Midian: finestra Effetti attivi (EffettiGump). In fondo: i numeri sono salvati in gumps.xml.
-        Effetti
+        Effetti,
+
+        // Midian: icona di un'abilita' di un libro di classe (MidianAbilitaButtonGump). In fondo come sopra.
+        AbilitaLibro
     }
 }

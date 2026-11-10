@@ -546,6 +546,11 @@ namespace ClassicUO.Configuration
 
                                     break;
 
+                                case GumpType.AbilitaLibro: // Midian: icona di un'abilita' di un libro di classe
+                                    gump = new MidianAbilitaButtonGump(world);
+
+                                    break;
+
                                 case GumpType.Container:
                                     gump = new ContainerGump(world);
 
@@ -741,6 +746,11 @@ namespace ClassicUO.Configuration
 
                                     case GumpType.MacroButton:
                                         gump = new MacroButtonGump(world);
+
+                                        break;
+
+                                    case GumpType.AbilitaLibro: // Midian
+                                        gump = new MidianAbilitaButtonGump(world);
 
                                         break;
                                 }
