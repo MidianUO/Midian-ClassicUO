@@ -28,6 +28,7 @@ $escludi = @(
 	'^ClassicUO/Data/Plugins/Razor/settings\.csv$', '^ClassicUO/Data/Plugins/Razor/counters\.xml$',	# Razor: del giocatore
 	'^ClassicUO/Data/Plugins/Razor/Scripts/', '^ClassicUO/Data/Client/MapsCache/',	# script del giocatore, cache
 	'^Launcher/stato\.json$', '\.scaricamento$',
+	'^Launcher/stato-hina\.txt$', '^Launcher/launcher\.log', '\.vecchio$', '\.hina\.(tmp|bak)$', '^\.hina/', '\.pdb$',	# launcher eseguibile
 	'^Avvia Midian\.bat$',				# il file che sta girando: non si aggiorna
 	'^UO/verdata\.mul\.originale$'
 )
@@ -35,6 +36,14 @@ if (-not (Test-Path "$Client\ClassicUO\ClassicUO.exe")) { throw "Client non trov
 # I file si leggono soltanto, e quelli che il client scrive mentre gioca (profili, impostazioni) sono esclusi:
 # con ClassicUO aperto basta un avviso. Per installare un cuo.dll nuovo invece va chiuso.
 if (Get-Process ClassicUO -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Client\*" }) { "attenzione: ClassicUO e' aperto (i file si leggono soltanto)" }
+
+# 0) Prima il launcher eseguibile (Hina, #12): mette exe, libsodium.dll, server.txt e le impostazioni di partenza
+#    nella cartella del client e pubblica sul VPS. Cosi' l'elenco qui sotto contiene l'exe e chi ha ancora la
+#    vecchia script lo riceve, e la nuova aggiorna.ps1 passa all'exe.
+if (-not $Prova -and -not $SoloRiserva) {
+	& (Join-Path $Launcher "pubblica-hina.ps1") -Client $Client -Launcher $Launcher
+	if (-not $?) { throw "pubblicazione Hina non riuscita" }
+}
 
 # 1) Il launcher nella cartella del client.
 New-Item -ItemType Directory -Force "$Client\Launcher" | Out-Null

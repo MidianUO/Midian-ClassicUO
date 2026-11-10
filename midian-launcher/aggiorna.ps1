@@ -23,6 +23,14 @@ $Qui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Radice = Split-Path -Parent $Qui
 $FileStato = Join-Path $Qui "stato.json"
 
+# Dal launcher eseguibile in poi (Midian-ClassicUO #12) aggiorna e avvia "Avvia Midian.exe" (Hina), se c'e'.
+# Su Windows 7 e 8 l'exe non parte (.NET 10): resta questa script.
+$exeNuovo = Join-Path $Radice "Avvia Midian.exe"
+if ([Environment]::OSVersion.Version.Major -ge 10 -and (Test-Path $exeNuovo) -and -not $NonAvviare) {
+	Start-Process -FilePath $exeNuovo -WorkingDirectory $Radice
+	return
+}
+
 # --- Finestra -------------------------------------------------------------------------------------------
 $form = New-Object Windows.Forms.Form
 $form.Text = "Midian"
