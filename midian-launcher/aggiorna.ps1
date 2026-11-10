@@ -110,11 +110,15 @@ function Fusione {
 $errori = 0; $scaricati = 0; $launcherCambiato = $false
 try {
 	Fusione
-	if (Get-Process ClassicUO -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Radice\*" }) {
-		# Un client aperto tiene bloccati i file: si salta il controllo e si apre un altro client.
-		Stato "Il gioco e' gia' aperto: avvio senza aggiornare."
-		Start-Sleep -Milliseconds 800; AvviaGioco; $form.Close(); return
+	# Un client aperto tiene bloccati i file. Prima il launcher saltava l'aggiornamento, ma chi chiudeva il gioco e
+	# riapriva subito trovava ClassicUO ancora in chiusura e restava senza i file nuovi (Midian-ClassicUO #10).
+	# Ora aspetta che si chiuda; "Gioca senza aggiornare" apre comunque un altro client.
+	while (-not $script:Salta -and -not $script:Chiuso -and (Get-Process ClassicUO -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Radice\*" })) {
+		Stato "Il gioco e' ancora aperto: chiudilo per aggiornare." "Oppure premi 'Gioca senza aggiornare' per aprire un altro client."
+		Start-Sleep -Milliseconds 500
 	}
+	if ($script:Chiuso) { return }
+	if ($script:Salta) { AvviaGioco; $form.Close(); return }
 
 	Stato "Controllo degli aggiornamenti..."
 	$sep = if ($Manifest.Contains("?")) { "&" } else { "?" }
