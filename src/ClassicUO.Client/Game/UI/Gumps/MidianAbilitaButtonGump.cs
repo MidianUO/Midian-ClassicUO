@@ -27,6 +27,24 @@ namespace ClassicUO.Game.UI.Gumps
         // I numeri dei pannelli [GUMP n] dei libri di classe (SPHEREgump2.SCP di Midian-Script).
         private static readonly HashSet<uint> _libri = new HashSet<uint> { 59, 60, 61, 62, 63, 64, 71, 72, 73, 76, 77, 102 };
 
+        // I nomi delle abilita' di ogni libro: pannello -> (pulsante -> nome), presi da SPHEREgump2.SCP.
+        // Solo questi pulsanti diventano icone (fuori restano "Cambia Menu", la guida e i pulsanti di servizio).
+        private static readonly Dictionary<uint, Dictionary<int, string>> _nomi = new Dictionary<uint, Dictionary<int, string>>
+        {
+            { 59, new Dictionary<int, string> { { 1, "Dark Fire Bolt" }, { 2, "Hallucination" }, { 3, "Animate Dead" }, { 4, "Bone Armour" }, { 5, "Patto" }, { 6, "Defile" }, { 7, "Vampire Ray" }, { 8, "Summon I" }, { 9, "Summon II" }, { 10, "Volcanic Ash" }, { 11, "Pig Iron" }, { 12, "Obsidian" }, { 13, "Daemon Bone" }, { 14, "Pumice" }, { 15, "Blood Spawn" }, { 16, "Disperdi vita" }, { 17, "Curse Arcana" } } },
+            { 60, new Dictionary<int, string> { { 1, "Barriera di Lame" }, { 2, "Cura di Massa" }, { 3, "Esorcismo" }, { 4, "Resurrezione" }, { 5, "Martello benedetto" }, { 6, "Invocare gli dei" }, { 8, "Pietra in Carne" }, { 9, "Dito della morte" }, { 10, "Angelo Custode" } } },
+            { 61, new Dictionary<int, string> { { 1, "Imposizione" }, { 2, "Cura di Massa" }, { 3, "Distruggi non morti" }, { 4, "Resurrezione" }, { 5, "Spada Santa" }, { 6, "Aiuto Divino" }, { 8, "Fulmine Sacro" }, { 9, "Verdetto divino" }, { 10, "Anima Purificata" } } },
+            { 62, new Dictionary<int, string> { { 1, "Spada Vampirica" }, { 2, "Offerta Votiva" }, { 3, "Peso degli anni" }, { 4, "Tocco del male" }, { 5, "Oltraggio Divino" }, { 6, "Paralisi" }, { 7, "Malattia" } } },
+            { 63, new Dictionary<int, string> { { 1, "Pugnale delle ombre" }, { 2, "Veleno Paralizzante" }, { 3, "Veleno Mortale" }, { 4, "Veleno di medusa" }, { 5, "Gas Velenoso" }, { 6, "Pugnale da lancio" }, { 7, "Mantello delle ombre" }, { 8, "Mantello del ladro" }, { 9, "Crea Trappole" } } },
+            { 64, new Dictionary<int, string> { { 1, "Tamburino da lancio" }, { 2, "Canzone delle stelle" }, { 3, "Canzone della vita" }, { 4, "Canzone della morte" }, { 5, "Canzone del sole" }, { 6, "Cantica delle creature" } } },
+            { 71, new Dictionary<int, string> { { 1, "Freccia di fuoco" }, { 2, "Freccia di ghiaccio" }, { 3, "Freccia di fulmine" }, { 4, "Colpo preciso" }, { 5, "Disarmare" }, { 6, "Nemico particolare" }, { 7, "Mimetizzazione" }, { 8, "Empatia Animale" }, { 9, "Arco dei boschi" }, { 10, "Faretra di Taumaril" } } },
+            { 72, new Dictionary<int, string> { { 1, "Enchant" }, { 2, "Dim. Door" }, { 3, "Serpent Rune" }, { 4, "Obsidian Sash" }, { 5, "Vampire Touch" }, { 6, "Lighting Storm" } } },
+            { 73, new Dictionary<int, string> { { 1, "Potenzia elem." }, { 2, "Sciame" }, { 3, "Forza vitale" }, { 4, "Call Lighting" }, { 5, "Nature Power" }, { 6, "Distruggi elem." } } },
+            { 76, new Dictionary<int, string> { { 1, "Spike Trap" }, { 2, "Explosion Trap" }, { 3, "Gas Trap" } } },
+            { 77, new Dictionary<int, string> { { 1, "Ira!" }, { 2, "Stordimento" }, { 3, "Bolas" }, { 4, "Stone Break" }, { 5, "Bow Break" }, { 6, "Disarmare" }, { 7, "Last Blow" }, { 8, "Berserker" }, { 9, "Explosive" } } },
+            { 102, new Dictionary<int, string> { { 1, "Preghiera" }, { 2, "Respingere" }, { 3, "Incanta Plate" }, { 4, "Consacra armatura" } } }
+        };
+
         // Pulsante 50 = "Guida alle abilita'": non e' un'abilita'.
         private const int PULSANTE_GUIDA = 50;
 
@@ -47,7 +65,8 @@ namespace ClassicUO.Game.UI.Gumps
 
         public static bool PulsanteTrascinabile(uint pannello, Button b)
         {
-            return IsLibro(pannello) && b.ButtonAction == ButtonAction.Activate && b.ButtonID > 0 && b.ButtonID != PULSANTE_GUIDA;
+            return IsLibro(pannello) && b.ButtonAction == ButtonAction.Activate && b.ButtonID > 0 && b.ButtonID != PULSANTE_GUIDA &&
+                   _nomi.TryGetValue(pannello, out Dictionary<int, string> n) && n.ContainsKey(b.ButtonID);
         }
 
         // Il server ha mandato il pannello di un libro: il libro e' l'ultimo oggetto su cui si e' fatto doppio clic.
@@ -112,6 +131,11 @@ namespace ClassicUO.Game.UI.Gumps
         // (lo stesso pulsante compare spesso due volte: nell'indice e nella pagina dell'abilita').
         public static string NomeDelPulsante(Gump libro, int pulsante)
         {
+            if (_nomi.TryGetValue(libro.ServerSerial, out Dictionary<int, string> tabella) && tabella.TryGetValue(pulsante, out string daTabella))
+            {
+                return daTabella;
+            }
+
             string nome = null;
             int migliore = int.MaxValue;
 
