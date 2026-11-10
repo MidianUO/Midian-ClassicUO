@@ -78,7 +78,7 @@ if (-not $Prova -and $Riserva) {
 		$st = Join-Path $env:TEMP "midian-riserva"; if (Test-Path $st) { Remove-Item $st -Recurse -Force }; New-Item -ItemType Directory $st | Out-Null
 		foreach ($v in $mancano) { Copy-Item $v.percorso (Join-Path $st $v.nome) -Force }
 		$tar = Join-Path $env:TEMP "midian-riserva.tar"; if (Test-Path $tar) { Remove-Item $tar -Force }
-		& tar.exe -cf $tar -C $st .
+		& "$env:SystemRoot\System32\tar.exe" -cf $tar -C $st .	# quello di Windows: da bash "tar.exe" sarebbe quello di Git
 		if ($LASTEXITCODE) { throw "archivio per la riserva non creato" }
 		& scp @opz $tar "${Riserva}:C:/Midian-Web/riserva.tar"
 		if ($LASTEXITCODE) { throw "copia sul VPS non riuscita" }

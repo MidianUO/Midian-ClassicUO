@@ -78,29 +78,54 @@ if ($SoloLocale) { return }
 
 # 4) Sul VPS: prima i pezzi nuovi (quelli non ancora caricati, segnati in caricati.txt), poi l'elenco.
 $chiaveSsh = "$env:USERPROFILE\.ssh\midian_vps"
-$opz = @("-i", $chiaveSsh, "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "-o", "LogLevel=ERROR")
+$opz = @("-i", "`"$chiaveSsh`"", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=4", "-o", "LogLevel=ERROR")
+# L'SSH del VPS a volte rifiuta o blocca la connessione (kex_exchange_identification): ogni comando si riprova fino
+# a 10 volte, e un tentativo bloccato si chiude dopo $secondi.
+function Remoto([string]$exe, [string[]]$argomenti, [int]$secondi = 120) {
+	for ($t = 1; $t -le 10; $t++) {
+		$p = Start-Process $exe -ArgumentList ($opz + $argomenti) -NoNewWindow -PassThru
+		$null = $p.Handle	# senza, PowerShell 5.1 non legge ExitCode a processo finito
+		if (-not $p.WaitForExit($secondi * 1000)) { try { $p.Kill() } catch {}; "  ${exe}: bloccato, tentativo $t" }
+		elseif ($p.ExitCode -eq 0) { return }
+		else { "  ${exe}: errore $($p.ExitCode), tentativo $t" }
+		Start-Sleep 30
+	}
+	throw "$exe non riuscito dopo 10 tentativi: $($argomenti -join ' ')"
+}
 $registro = Join-Path $Uscita "caricati.txt"
 $caricati = @{}; if (Test-Path $registro) { foreach ($r in Get-Content $registro) { if ($r) { $caricati[$r] = $true } } }
 $tutti = Get-ChildItem "$Uscita\chunks" -Recurse -File | ForEach-Object { $_.FullName.Substring($Uscita.Length + 1).Replace('\', '/') }
 $nuovi = @($tutti | Where-Object { -not $caricati.ContainsKey($_) })
 "pezzi nuovi da caricare: $($nuovi.Count) di $($tutti.Count)"
 if ($nuovi.Count -gt 0) {
+	# A pacchetti di circa 50 MB: il VPS a volte chiude le connessioni lunghe, cosi' un intoppo costa un pacchetto solo
+	# e ogni pacchetto arrivato e' segnato in caricati.txt (si riprende da li' rilanciando lo script).
+	Remoto ssh @($Vps, "`"cmd /c if not exist C:\Midian-Web\hina mkdir C:\Midian-Web\hina`"")
+	# Un'estrazione rimasta appesa da un tentativo interrotto tiene bloccato pezzi.tar ("write remote: Failure").
+	Remoto ssh @($Vps, "`"cmd /c (taskkill /f /im tar.exe 2>nul & del /q C:\Midian-Web\hina\pezzi.tar 2>nul) & exit 0`"")
 	$lista = Join-Path $env:TEMP "midian-hina-lista.txt"
-	[IO.File]::WriteAllLines($lista, $nuovi)
-	$tar = Join-Path $env:TEMP "midian-hina.tar"; if (Test-Path $tar) { Remove-Item $tar -Force }
-	& "$env:SystemRoot\System32\tar.exe" -cf $tar -C $Uscita -T $lista
-	if ($LASTEXITCODE) { throw "archivio dei pezzi non creato" }
-	& ssh @opz $Vps "cmd /c if not exist C:\Midian-Web\hina mkdir C:\Midian-Web\hina"
-	& scp @opz $tar "${Vps}:C:/Midian-Web/hina/pezzi.tar"
-	if ($LASTEXITCODE) { throw "copia dei pezzi sul VPS non riuscita" }
-	& ssh @opz $Vps "cmd /c tar -xf C:\Midian-Web\hina\pezzi.tar -C C:\Midian-Web\hina && del /q C:\Midian-Web\hina\pezzi.tar"
-	if ($LASTEXITCODE) { throw "estrazione dei pezzi sul VPS non riuscita" }
-	Add-Content $registro $nuovi
-	Remove-Item $tar, $lista -Force
+	$tar = Join-Path $env:TEMP "midian-hina.tar"
+	$i = 0; $parte = 0
+	while ($i -lt $nuovi.Count) {
+		$gruppo = New-Object Collections.ArrayList; $byte = 0
+		while ($i -lt $nuovi.Count -and ($gruppo.Count -eq 0 -or $byte -lt 50MB)) {
+			[void]$gruppo.Add($nuovi[$i]); $byte += (Get-Item (Join-Path $Uscita $nuovi[$i])).Length; $i++
+		}
+		$parte++
+		[IO.File]::WriteAllLines($lista, [string[]]$gruppo)
+		if (Test-Path $tar) { Remove-Item $tar -Force }
+		& "$env:SystemRoot\System32\tar.exe" -cf $tar -C $Uscita -T $lista
+		if ($LASTEXITCODE) { throw "archivio dei pezzi non creato" }
+		Remoto scp @("`"$tar`"", "${Vps}:C:/Midian-Web/hina/pezzi.tar") 900
+		Remoto ssh @($Vps, "`"cmd /c tar -xf C:\Midian-Web\hina\pezzi.tar -C C:\Midian-Web\hina && del /q C:\Midian-Web\hina\pezzi.tar`"") 300
+		Add-Content $registro ([string[]]$gruppo)
+		"  pacchetto $parte caricato ($i di $($nuovi.Count) pezzi, $([math]::Round($byte / 1MB)) MB)"
+	}
+	Remove-Item $tar, $lista -Force -ErrorAction SilentlyContinue
 }
-& scp @opz "$Launcher\hina-web.config" "${Vps}:C:/Midian-Web/hina/web.config"
-& scp @opz "$Uscita\manifest.json" "${Vps}:C:/Midian-Web/hina/manifest.nuovo"
-if ($LASTEXITCODE) { throw "copia dell'elenco sul VPS non riuscita" }
-& ssh @opz $Vps "cmd /c move /y C:\Midian-Web\hina\manifest.nuovo C:\Midian-Web\hina\manifest.json"
-if ($LASTEXITCODE) { throw "elenco non sostituito sul VPS" }
+Remoto scp @("`"$Launcher\hina-web.config`"", "${Vps}:C:/Midian-Web/hina/web.config")
+# Il launcher da scaricare dal sito (pulsante "Server di riserva" di download.html): http://45.13.235.243/Midian.exe
+Remoto scp @("`"$Exe\Avvia Midian.exe`"", "${Vps}:C:/Midian-Web/Midian.exe") 600
+Remoto scp @("`"$Uscita\manifest.json`"", "${Vps}:C:/Midian-Web/hina/manifest.nuovo")
+Remoto ssh @($Vps, "`"cmd /c move /y C:\Midian-Web\hina\manifest.nuovo C:\Midian-Web\hina\manifest.json`"")
 "pubblicato: $Base (versione $versione)"
