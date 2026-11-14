@@ -271,6 +271,7 @@ namespace ClassicUO.Game.UI.Gumps
     internal class GrayMenuGump : Gump
     {
         private readonly ResizePic _resizePic;
+        private const ushort TESTO_MIDIAN = 0x0481;	// Midian: bianco (prima 0x0386, grigio chiaro)
 
         public GrayMenuGump(World world, uint local, uint serv, string name) : base(world, local, serv)
         {
@@ -279,11 +280,13 @@ namespace ClassicUO.Game.UI.Gumps
             CanCloseWithRightClick = false;
             IsFromServer = true;
 
-            Add(_resizePic = new ResizePic(0x13EC) { Width = 400, Height = 111111 });
+            // Midian (MidianUO/Midian-ClassicUO#14): blu scuro (0x2436) con il testo bianco al posto della pietra grigia (0x13EC) con
+            // il testo grigio chiaro (0x0386), poco leggibile nei menu del server senza icone (Help, .add, gilde...).
+            Add(_resizePic = new ResizePic(0x2436) { Width = 400, Height = 111111 });
 
             Label l;
 
-            Add(l = new Label(name, false, 0x0386, 370, 1) { X = 20, Y = 16 });
+            Add(l = new Label(name, false, TESTO_MIDIAN, 370, 1) { X = 20, Y = 16 });
 
             Width = _resizePic.Width;
             Height = l.Height;
@@ -298,7 +301,7 @@ namespace ClassicUO.Game.UI.Gumps
 
         public int AddItem(string name, int y)
         {
-            RadioButton radio = new RadioButton(0, 0x138A, 0x138B, name, 1, 0x0386, false, 330)
+            RadioButton radio = new RadioButton(0, 0x138A, 0x138B, name, 1, TESTO_MIDIAN, false, 330)
             {
                 X = 50,
                 Y = y
