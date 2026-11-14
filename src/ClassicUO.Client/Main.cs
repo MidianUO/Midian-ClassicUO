@@ -118,6 +118,18 @@ namespace ClassicUO
 
             Settings.GlobalSettings = ConfigurationResolver.Load(globalSettingsPath, SettingsJsonContext.RealDefault.Settings);
 
+            // Midian (MidianUO/Midian-ClassicUO#15): il server Sphere X parla il protocollo dei client moderni. Il client di
+            // Midian passa da 1.26.4 (con cifratura, per la 0.51a) a 7.0.8.2 senza cifratura: la versione piu' alta che legge
+            // i file del gioco di Midian (tiledata nel formato vecchio, cambiato dalla 7.0.9). Le impostazioni dei giocatori
+            // non le aggiorna il launcher (solo ip e porta): qui si cambiano una volta sola.
+            if (Settings.GlobalSettings != null && Settings.GlobalSettings.ClientVersion == "1.26.4")
+            {
+                Settings.GlobalSettings.ClientVersion = "7.0.8.2";
+                Settings.GlobalSettings.Encryption = 0;
+                Settings.GlobalSettings.Save();
+                Log.Trace("Midian: versione del client 1.26.4 -> 7.0.8.2 senza cifratura");
+            }
+
             ReadSettingsFromArgs(args);
 
             // still invalid, cannot load settings
