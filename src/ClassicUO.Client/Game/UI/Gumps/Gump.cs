@@ -137,12 +137,18 @@ namespace ClassicUO.Game.UI.Gumps
         {
             // Midian: trascinando il pulsante di un'abilita' fuori da un libro di classe si crea la sua icona
             // (MidianAbilitaButtonGump) invece di spostare il libro.
-            if (IsFromServer && MidianAbilita.IsLibro(ServerSerial) &&
-                UIManager.MouseOverControl is Button b && b.RootParent == this && MidianAbilita.PulsanteTrascinabile(ServerSerial, b))
+            // Il pulsante si cerca dove si e' premuto il mouse: quando parte il trascinamento il mouse si e' gia' mosso
+            // e puo' non essere piu' sopra il pulsante.
+            if (IsFromServer && MidianAbilita.IsLibro(ServerSerial))
             {
-                MidianAbilita.CreaIcona(this, b);
+                Button b = MidianAbilita.PulsanteSotto(this, ClassicUO.Input.Mouse.LClickPosition);
 
-                return;
+                if (b != null)
+                {
+                    MidianAbilita.CreaIcona(this, b);
+
+                    return;
+                }
             }
 
             base.OnDragBegin(x, y);

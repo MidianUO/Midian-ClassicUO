@@ -6623,7 +6623,17 @@ namespace ClassicUO.Network
 
                 if (string.Equals(entry, "button", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    gump.Add(new Button(gparams), page);
+                    Button pulsante = new Button(gparams);
+
+                    // Midian (MidianUO/Midian-ClassicUO#13): i pulsanti delle abilita' dei libri di classe si
+                    // trascinano per creare l'icona. Con CanMove = false UIManager.AttemptDragControl si fermava sul
+                    // pulsante e il trascinamento non arrivava mai a Gump.OnDragBegin.
+                    if (MidianAbilita.PulsanteTrascinabile(gumpID, pulsante))
+                    {
+                        pulsante.CanMove = true;
+                    }
+
+                    gump.Add(pulsante, page);
                 }
                 else if (
                     string.Equals(

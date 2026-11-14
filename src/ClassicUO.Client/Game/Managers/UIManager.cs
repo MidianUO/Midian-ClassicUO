@@ -115,6 +115,19 @@ namespace ClassicUO.Game.Managers
         {
             HandleMouseInput();
 
+            // Midian (#13): sul pulsante di un'abilita' di un libro di classe il trascinamento (che crea l'icona) parte
+            // solo dopo 6 pixel, cosi' un clic col mouse appena mosso usa l'abilita' come prima.
+            if (_mouseDownControls[(int) MouseButtonType.Left] is Button pulsanteLibro && pulsanteLibro.CanMove &&
+                pulsanteLibro.RootParent is Gump libro && libro.IsFromServer && MidianAbilita.IsLibro(libro.ServerSerial))
+            {
+                Point spostamento = Mouse.LDragOffset;
+
+                if (spostamento.X * spostamento.X + spostamento.Y * spostamento.Y < 36)
+                {
+                    return;
+                }
+            }
+
             if (_mouseDownControls[(int) MouseButtonType.Left] != null)
             {
                 if (ProfileManager.CurrentProfile == null || !ProfileManager.CurrentProfile.HoldAltToMoveGumps || Keyboard.Alt)

@@ -69,6 +69,23 @@ namespace ClassicUO.Game.UI.Gumps
                    _nomi.TryGetValue(pannello, out Dictionary<int, string> n) && n.ContainsKey(b.ButtonID);
         }
 
+        // Il pulsante di un'abilita' della pagina visibile del libro che si trova nel punto dato dello schermo, o null.
+        public static Button PulsanteSotto(Gump libro, Microsoft.Xna.Framework.Point punto)
+        {
+            foreach (Control c in libro.Children)
+            {
+                if (c is Button b && !b.IsDisposed && b.IsVisible && (b.Page == 0 || b.Page == libro.ActivePage) &&
+                    PulsanteTrascinabile(libro.ServerSerial, b) &&
+                    punto.X >= b.ScreenCoordinateX && punto.X < b.ScreenCoordinateX + b.Width &&
+                    punto.Y >= b.ScreenCoordinateY && punto.Y < b.ScreenCoordinateY + b.Height)
+                {
+                    return b;
+                }
+            }
+
+            return null;
+        }
+
         // Il server ha mandato il pannello di un libro: il libro e' l'ultimo oggetto su cui si e' fatto doppio clic.
         public static void PannelloAperto(World world, uint pannello)
         {
