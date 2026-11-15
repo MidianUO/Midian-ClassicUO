@@ -46,25 +46,9 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 case ButtonType.BuffIcon:
 
-                    if (Client.Game.UO.Version < ClientVersion.CV_5020)
-                    {
-                        // Midian: con i client vecchi la pallina apre la finestra Effetti attivi.
-                        EffettiGump.ApriChiudi(World);
-
-                        break;
-                    }
-
-                    BuffGump gump = UIManager.GetGump<BuffGump>();
-
-                    if (gump == null)
-                    {
-                        UIManager.Add(new BuffGump(World, 100, 100));
-                    }
-                    else
-                    {
-                        gump.SetInScreen();
-                        gump.BringOnTop();
-                    }
+                    // Midian: la pallina apre la finestra Effetti attivi con tutti i client (anche 7.0.8.2 per Sphere X,
+                    // status vecchio e nuovo): il server di Midian non manda i buff standard, la BuffGump resterebbe vuota.
+                    EffettiGump.ApriChiudi(World);
 
                     break;
             }
