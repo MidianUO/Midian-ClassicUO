@@ -35,6 +35,24 @@ namespace ClassicUO.Game.UI.Gumps
         }
 
         public override GumpType GumpType => GumpType.StatusGump;
+
+        // Midian: pulsante "Effetti" blu con cornice dorata (54 x 15): apre e chiude la finestra Effetti attivi.
+        protected void AggiungiPulsanteEffetti(int EX, int EY)
+        {
+            const int EW = 54, EH = 15;
+            Add(new MidianRettangolo(EW, EH, new Color(212, 175, 55)) { X = EX, Y = EY });		// cornice oro
+            Add(new MidianRettangolo(EW - 2, EH - 2, new Color(30, 64, 160)) { X = EX + 1, Y = EY + 1 });	// blu
+            Add(new Label("Effetti", false, 0x0481, EW - 2, 1, FontStyle.None, TEXT_ALIGN_TYPE.TS_CENTER) { X = EX + 1, Y = EY + 1, AcceptMouseInput = false });
+            HitBox effetti = new HitBox(EX, EY, EW, EH, "Effetti attivi: magie, pozioni e abilità a tempo", 0.3f);
+            effetti.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtonType.Left)
+                {
+                    EffettiGump.ApriChiudi(World);
+                }
+            };
+            Add(effetti);
+        }
         protected Label[] _labels;
         protected readonly GumpPic[] _lockers = new GumpPic[3];
         protected Point _point;
@@ -194,37 +212,9 @@ namespace ClassicUO.Game.UI.Gumps
 
             int xOffset = 0;
 
-            if (Client.Game.UO.Version >= ClientVersion.CV_5020)
-            {
-                Add
-                (
-                    new Button((int)ButtonType.BuffIcon, 0x7538, 0x7539, 0x7539)
-                    {
-                        X = 20,
-                        Y = 42,
-                        ButtonAction = ButtonAction.Activate
-                    }
-                );
-            }
-            else
-            {
-                // Midian: i file del client 1.26 non hanno la pallina 0x7538. La gemma 0x837 sul bordo non si
-                // vedeva: al suo posto un pulsante "Effetti" blu con cornice dorata, a destra del nome, sullo
-                // sfondo scuro libero sotto il titolo (x 194-248). Apre e chiude la finestra Effetti attivi.
-                const int EX = 194, EY = 44, EW = 54, EH = 15;
-                Add(new MidianRettangolo(EW, EH, new Color(212, 175, 55)) { X = EX, Y = EY });		// cornice oro
-                Add(new MidianRettangolo(EW - 2, EH - 2, new Color(30, 64, 160)) { X = EX + 1, Y = EY + 1 });	// blu
-                Add(new Label("Effetti", false, 0x0481, EW - 2, 1, FontStyle.None, TEXT_ALIGN_TYPE.TS_CENTER) { X = EX + 1, Y = EY + 1, AcceptMouseInput = false });
-                HitBox effetti = new HitBox(EX, EY, EW, EH, "Effetti attivi: magie, pozioni e abilità a tempo", 0.3f);
-                effetti.MouseUp += (s, e) =>
-                {
-                    if (e.Button == MouseButtonType.Left)
-                    {
-                        EffettiGump.ApriChiudi(World);
-                    }
-                };
-                Add(effetti);
-            }
+            // Midian: i file del client di Midian (1.26) non hanno la pallina 0x7538 dei client nuovi: con la 7.0.8.2 il
+            // tasto c'era ma era invisibile. Con tutte le versioni il pulsante blu "Effetti" a destra del nome.
+            AggiungiPulsanteEffetti(194, 44);
 
             Lock status = World.Player.StrLock;
             xOffset = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 28 : 40;
@@ -578,18 +568,8 @@ namespace ClassicUO.Game.UI.Gumps
                 );
 
 
-                if (Client.Game.UO.Version >= ClientVersion.CV_5020)
-                {
-                    Add
-                    (
-                        new Button((int) ButtonType.BuffIcon, 0x7538, 0x7539, 0x7539)
-                        {
-                            X = 40,
-                            Y = 50,
-                            ButtonAction = ButtonAction.Activate
-                        }
-                    );
-                }
+                // Midian: al posto della pallina 0x7538 (non c'e' nei file del client di Midian) il pulsante "Effetti".
+                AggiungiPulsanteEffetti(40, 50);
 
                 Lock status = World.Player.StrLock;
                 xOffset = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 28 : 40;
