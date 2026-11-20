@@ -165,9 +165,10 @@ namespace ClassicUO.Game.UI.Gumps
                 }
                 else
                 {
-                    // QUESTS BUTTON
+                    // Midian: al posto di QUEST (il server di Midian non ha le quest) il pulsante GUILD, che apre il
+                    // menu della guildstone della propria gilda anche da lontano.
                     Add(
-                        new Button((int)Buttons.Quests, 0x57b5, 0x57b7, 0x57b6)
+                        new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
                         {
                             X = 185,
                             Y = 44 + 27 * 3,
@@ -186,15 +187,14 @@ namespace ClassicUO.Game.UI.Gumps
                     }
                 );
 
-                // GUILD BUTTON
-                Add(
-                    new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
-                    {
-                        X = 185,
-                        Y = 44 + 27 * 5,
-                        ButtonAction = ButtonAction.Activate
-                    }
-                );
+                // Midian: dalla 5.0 al posto del secondo GUILD il JOURNAL (il diario), che non aveva piu' un pulsante.
+                Button pulsante5 = Client.Game.UO.Version < ClientVersion.CV_500A
+                    ? new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
+                    : new Button((int)Buttons.Journal, 0x7dc, 0x7dd, 0x7de);
+                pulsante5.X = 185;
+                pulsante5.Y = 44 + 27 * 5;
+                pulsante5.ButtonAction = ButtonAction.Activate;
+                Add(pulsante5);
 
                 // TOGGLE PEACE/WAR BUTTON
                 Mobile mobile = World.Mobiles.Get(LocalSerial);
