@@ -170,7 +170,8 @@ namespace ClassicUO.Game.UI.Gumps
                     // Midian (#18): la gump 0x57b2 nei file di Midian non c'e' (si vedeva il JOURNAL di sotto o niente):
                     // immagine fatta dal client con la scritta "Guild".
                     Add(
-                        new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
+                        // (il costruttore del Button si elimina se la gump non c'e': si parte dalla 0x7dc, poi disegna MidianImmagini)
+                        new Button((int)Buttons.Guild, 0x7dc, 0x7dd, 0x7de)
                         {
                             X = 185,
                             Y = 44 + 27 * 3,
@@ -195,7 +196,7 @@ namespace ClassicUO.Game.UI.Gumps
 
                 // Midian: dalla 5.0 al posto del secondo GUILD il JOURNAL (il diario), che non aveva piu' un pulsante.
                 Button pulsante5 = Client.Game.UO.Version < ClientVersion.CV_500A
-                    ? new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
+                    ? new Button((int)Buttons.Guild, 0x7dc, 0x7dd, 0x7de)	// Midian (#18): 0x57b2 non c'e', vedi sopra
                     : new Button((int)Buttons.Journal, 0x7dc, 0x7dd, 0x7de);
                 pulsante5.X = 185;
                 pulsante5.Y = 44 + 27 * 5;
