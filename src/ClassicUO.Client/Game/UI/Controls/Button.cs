@@ -170,11 +170,27 @@ namespace ClassicUO.Game.UI.Controls
             _entered = false;
         }
 
+        // Midian (#18): immagini fatte dal client (normale, premuto, sopra) al posto delle gump che il file non ha.
+        public Texture2D[] MidianImmagini { get; set; }
+
         public override bool AddToRenderLists(RenderLists renderLists, int x, int y, ref float layerDepthRef)
         {
             float layerDepth = layerDepthRef;
             Texture2D texture = null;
             Rectangle bounds = Rectangle.Empty;
+
+            if (MidianImmagini != null)
+            {
+                Texture2D immagine = MidianImmagini[IsClicked ? 1 : (_entered ? 2 : 0)];
+                var hueMidian = ShaderHueTranslator.GetHueVector(Hue, false, Alpha, true);
+                renderLists.AddGumpNoAtlas(
+                    batcher =>
+                    {
+                        batcher.Draw(immagine, new Rectangle(x, y, Width, Height), new Rectangle(0, 0, immagine.Width, immagine.Height), hueMidian, layerDepth);
+                        return true;
+                    });
+                return base.AddToRenderLists(renderLists, x, y, ref layerDepthRef);
+            }
 
             if (_entered || IsClicked)
             {

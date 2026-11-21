@@ -167,11 +167,17 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     // Midian: al posto di QUEST (il server di Midian non ha le quest) il pulsante GUILD, che apre il
                     // menu della guildstone della propria gilda anche da lontano.
+                    // Midian (#18): la gump 0x57b2 nei file di Midian non c'e' (si vedeva il JOURNAL di sotto o niente):
+                    // immagine fatta dal client con la scritta "Guild".
                     Add(
                         new Button((int)Buttons.Guild, 0x57b2, 0x57b4, 0x57b3)
                         {
                             X = 185,
                             Y = 44 + 27 * 3,
+                            Width = MidianPulsanteGilda.LARGHEZZA,
+                            Height = MidianPulsanteGilda.ALTEZZA,
+                            ContainsByBounds = true,
+                            MidianImmagini = MidianPulsanteGilda.Immagini,
                             ButtonAction = ButtonAction.Activate
                         }
                     );
@@ -194,6 +200,13 @@ namespace ClassicUO.Game.UI.Gumps
                 pulsante5.X = 185;
                 pulsante5.Y = 44 + 27 * 5;
                 pulsante5.ButtonAction = ButtonAction.Activate;
+                if (Client.Game.UO.Version < ClientVersion.CV_500A)	// Midian (#18): anche qui la gump 0x57b2 manca
+                {
+                    pulsante5.Width = MidianPulsanteGilda.LARGHEZZA;
+                    pulsante5.Height = MidianPulsanteGilda.ALTEZZA;
+                    pulsante5.ContainsByBounds = true;
+                    pulsante5.MidianImmagini = MidianPulsanteGilda.Immagini;
+                }
                 Add(pulsante5);
 
                 // TOGGLE PEACE/WAR BUTTON
