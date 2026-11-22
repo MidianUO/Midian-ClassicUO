@@ -56,7 +56,9 @@ namespace ClassicUO.Game.Data
 
             TooltipsEnabled = (flags & CharacterListFlags.CLF_PALADIN_NECROMANCER_TOOLTIPS) != 0 && Client.Game.UO.Version >= ClientVersion.CV_308Z;
 
-            PaperdollBooks = (flags & CharacterListFlags.CLF_PALADIN_NECROMANCER_TOOLTIPS) != 0;
+            // MIDIAN: il flag dei tooltip accende anche il libro delle mosse AOS e quello razziale nel paperdoll,
+            // che a Midian non esistono (niente mosse speciali delle armi, niente elfi/gargoyle).
+            PaperdollBooks = false;
         }
     }
 }

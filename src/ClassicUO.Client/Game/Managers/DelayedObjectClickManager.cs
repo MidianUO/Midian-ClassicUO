@@ -31,10 +31,9 @@ namespace ClassicUO.Game.Managers
 
             if (entity != null)
             {
-                if (!_world.ClientFeatures.TooltipsEnabled || SerialHelper.IsItem(Serial) && ((Item) entity).IsLocked && ((Item) entity).ItemData.Weight == 255 && !((Item) entity).ItemData.IsContainer)
-                {
-                    GameActions.SingleClick(_world, Serial);
-                }
+                // MIDIAN: il clic singolo chiede sempre il nome al server (nome sopra la testa con titolo e gilda,
+                // come prima), anche con i tooltip accesi: i tooltip si vedono passando il cursore.
+                GameActions.SingleClick(_world, Serial);
 
                 if (_world.ClientFeatures.PopupEnabled)
                 {
