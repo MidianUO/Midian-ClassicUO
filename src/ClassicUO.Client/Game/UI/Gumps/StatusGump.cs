@@ -64,9 +64,20 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 case ButtonType.BuffIcon:
 
-                    // Midian: la pallina apre la finestra Effetti attivi con tutti i client (anche 7.0.8.2 per Sphere X,
-                    // status vecchio e nuovo): il server di Midian non manda i buff standard, la BuffGump resterebbe vuota.
-                    EffettiGump.ApriChiudi(World);
+                    // Midian (MidianUO/Midian-ClassicUO#21): la pallina apre di nuovo la barra dei buff di ClassicUO. Le sue
+                    // immagini (0x7538, 0x757F-0x7589 e le icone dei buff) sono state aggiunte ai file del client di Midian
+                    // e Sphere X manda i buff con OF_Buffs. Gli Effetti attivi restano sul pulsante blu "Effetti".
+                    BuffGump gump = UIManager.GetGump<BuffGump>();
+
+                    if (gump == null)
+                    {
+                        UIManager.Add(new BuffGump(World, 100, 100));
+                    }
+                    else
+                    {
+                        gump.SetInScreen();
+                        gump.BringOnTop();
+                    }
 
                     break;
             }
@@ -215,6 +226,17 @@ namespace ClassicUO.Game.UI.Gumps
             // Midian: i file del client di Midian (1.26) non hanno la pallina 0x7538 dei client nuovi: con la 7.0.8.2 il
             // tasto c'era ma era invisibile. Con tutte le versioni il pulsante blu "Effetti" a destra del nome.
             AggiungiPulsanteEffetti(194, 44);
+
+            // Midian (#21): la pallina della barra dei buff, al suo posto originale.
+            Add
+            (
+                new Button((int)ButtonType.BuffIcon, 0x7538, 0x7539, 0x7539)
+                {
+                    X = 20,
+                    Y = 42,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
 
             Lock status = World.Player.StrLock;
             xOffset = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 28 : 40;
@@ -569,7 +591,17 @@ namespace ClassicUO.Game.UI.Gumps
 
 
                 // Midian: al posto della pallina 0x7538 (non c'e' nei file del client di Midian) il pulsante "Effetti".
-                AggiungiPulsanteEffetti(40, 50);
+                // Midian (#21): la pallina della barra dei buff al suo posto originale, il pulsante Effetti subito a destra.
+                Add
+                (
+                    new Button((int)ButtonType.BuffIcon, 0x7538, 0x7539, 0x7539)
+                    {
+                        X = 40,
+                        Y = 50,
+                        ButtonAction = ButtonAction.Activate
+                    }
+                );
+                AggiungiPulsanteEffetti(58, 50);
 
                 Lock status = World.Player.StrLock;
                 xOffset = Client.Game.UO.FileManager.Gumps.UseUOPGumps ? 28 : 40;

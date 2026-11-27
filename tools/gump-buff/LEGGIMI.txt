@@ -1,0 +1,7 @@
+Immagini della barra dei buff per i file del client di Midian (MidianUO/Midian-ClassicUO#21).
+
+Il Gumpart.mul di Midian non ha la pallina 0x7538, la cornice 0x757F-0x7589 e le icone dei buff (BuffTable.cs).
+aggiungi-gump.js le prende dal gumpartLegacyMUL.uop di un client UO nuovo e le aggiunge in fondo al Gumpart.mul,
+senza toccare le gump che Midian ha gia'. id-buff.txt e' l'elenco usato il 27/11/2026 (196 gump, 5D51 non c'e').
+
+node aggiungi-gump.js <gumpartLegacyMUL.uop> <Gumpidx.mul> <Gumpart.mul> <Gumpidx nuovo> <Gumpart nuovo> $(cat id-buff.txt)
